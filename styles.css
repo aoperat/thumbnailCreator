@@ -39,6 +39,17 @@ h1 {
     }
 }
 
+.canvas-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  
+  h2 {
+    margin-bottom: 10px;
+  }
+
+  
 
 footer {
     margin-top: 20px;
@@ -56,3 +67,10 @@ footer a {
 footer a:hover {
     text-decoration: underline;
 }
+
+#previewCanvas {
+    border: 2px solid #000000; /* You can choose a different color or style for the border */
+    /* background-color: #f0f0f0; */ /* Uncomment this line to use a background color instead of a border */
+    /* box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); */ /* Uncomment this line to use a box shadow instead of a border */
+  }
+  
