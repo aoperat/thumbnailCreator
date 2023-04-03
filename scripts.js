@@ -1,14 +1,29 @@
-const fileInput = document.getElementById("fileInput");
-const imageCanvas = document.getElementById("imageCanvas");
-const downloadBtn = document.getElementById("downloadBtn");
-const ctx = imageCanvas.getContext("2d");
-const snapDistance = 0;
+// const fileInput = document.getElementById("fileInput");
+// const imageCanvas = document.getElementById("imageCanvas");
+// const downloadBtn = document.getElementById("downloadBtn");
+// const ctx = imageCanvas.getContext("2d");
+// const snapDistance = 0;
 
-const previewCanvas = document.getElementById("previewCanvas");
-const previewCtx = previewCanvas.getContext("2d");
+// const previewCanvas = document.getElementById("previewCanvas");
+// const previewCtx = previewCanvas.getContext("2d");
 
-const highResCanvas = document.getElementById("highResCanvas");
-const highResCtx = highResCanvas.getContext("2d");
+// const highResCanvas = document.getElementById("highResCanvas");
+// const highResCtx = highResCanvas.getContext("2d");
+
+// const handleSize = 20;
+
+const canvasElem = {
+  fileInput: document.getElementById("fileInput"),
+  imageCanvas: document.getElementById("imageCanvas"),
+  downloadBtn: document.getElementById("downloadBtn"),
+  ctx: document.getElementById("imageCanvas").getContext("2d"),
+  snapDistance: 0,
+  previewCanvas: document.getElementById("previewCanvas"),
+  previewCtx: document.getElementById("previewCanvas").getContext("2d"),
+  highResCanvas: document.getElementById("highResCanvas"),
+  highResCtx: document.getElementById("highResCanvas").getContext("2d"),
+  handleSize: 20,
+};
 
 let rect = {
   x: 50,
@@ -22,12 +37,128 @@ let rect = {
 let offsetY;
 let img;
 
+
+let initialFingerDistance = 0;
+let initialRectSize = { width: 0, height: 0 };
+
+//모바일
+function getTouchCoordinates(e) {
+  const rect = e.target.getBoundingClientRect();
+  const scaleX = e.target.width / rect.width;
+  const scaleY = e.target.height / rect.height;
+  const touchX = (e.touches[0].clientX - rect.left) * scaleX;
+  const touchY = (e.touches[0].clientY - rect.top) * scaleY;
+  return { x: touchX, y: touchY };
+}
+
+
+
+function getDistanceBetweenFingers(touch1, touch2) {
+  const dx = touch1.clientX - touch2.clientX;
+  const dy = touch1.clientY - touch2.clientY;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+
+// Event Listeners
+
+imageCanvas.addEventListener("touchstart", (e) => {
+  e.preventDefault(); // Prevent scrolling or zooming
+  const { x: touchX, y: touchY } = getTouchCoordinates(e);
+
+  if (e.touches.length === 2) {
+    initialFingerDistance = getDistanceBetweenFingers(e.touches[0], e.touches[1]);
+    initialRectSize = { width: rect.width, height: rect.height };
+  }
+
+  if (
+    touchX > rect.x + rect.width - handleSize / 2 &&
+    touchX < rect.x + rect.width + handleSize / 2&&
+    touchY > rect.y + rect.height - handleSize / 2 &&
+    touchY < rect.y + rect.height + handleSize / 2
+  ) {
+    rect.isResizing = true;
+  } else if (
+    touchX > rect.x &&
+    touchX < rect.x + rect.width &&
+    touchY > rect.y &&
+    touchY < rect.y + rect.height
+  ) {
+    rect.isMoving = true;
+  }
+});
+
+imageCanvas.addEventListener("touchmove", (e) => {
+  e.preventDefault(); // Prevent scrolling or zooming
+
+  if (e.touches.length === 2) {
+    const currentFingerDistance = getDistanceBetweenFingers(e.touches[0], e.touches[1]);
+    const scaleFactor = currentFingerDistance / initialFingerDistance;
+
+    rect.width = initialRectSize.width * scaleFactor;
+    rect.height = initialRectSize.height * scaleFactor;
+
+    drawImageAndRectangle();
+  }
+
+  const { x: touchX, y: touchY } = getTouchCoordinates(e);
+
+  if (rect.isResizing) {
+    const newWidth = touchX - rect.x;
+    const newHeight = newWidth * (4 / 6);
+
+    if (newWidth <= imageCanvas.width - rect.x && newHeight <= imageCanvas.height - rect.y - offsetY * 2) {
+      rect.width = newWidth;
+      rect.height = newHeight;
+    }
+
+    // Magnet effect
+    applyMagnetEffect();
+
+    drawImageAndRectangle();
+  } else if (rect.isMoving) {
+    const dx = touchX - rect.width / 2;
+    const dy = touchY - rect.height / 2;
+
+    rect.x = Math.max(0, Math.min(imageCanvas.width - rect.width, dx));
+    rect.y = Math.max(offsetY, Math.min(imageCanvas.height - rect.height - offsetY, dy));
+
+    // Magnet effect
+    applyMagnetEffect();
+
+    drawImageAndRectangle();
+  }
+});
+
+imageCanvas.addEventListener("touchend", (e) => {
+  e.preventDefault(); // Prevent scrolling or zooming
+  rect.isResizing = false;
+  rect.isMoving = false;
+});
+
+
+
 // Event Listeners
 fileInput.addEventListener("change", handleFileInputChange);
 imageCanvas.addEventListener("mousedown", handleMouseDown);
 imageCanvas.addEventListener("mousemove", handleMouseMove);
 imageCanvas.addEventListener("mouseup", handleMouseUp);
 downloadBtn.addEventListener("click", handleDownloadClick);
+imageCanvas.addEventListener("wheel", handleMouseWheel);
+
+function handleMouseWheel(e) {
+  e.preventDefault();
+
+  const scaleFactor = e.deltaY < 0 ? 1.05 : 0.95;
+  const newWidth = rect.width * scaleFactor;
+  const newHeight = rect.height * scaleFactor;
+
+  rect.width = newWidth;
+  rect.height = newHeight;
+
+  applyMagnetEffect();
+  drawImageAndRectangle();
+}
 
 // Event Handlers
 function handleFileInputChange(e) {
@@ -49,11 +180,17 @@ function handleMouseDown(e) {
   const mouseX = e.clientX - imageCanvas.getBoundingClientRect().left;
   const mouseY = e.clientY - imageCanvas.getBoundingClientRect().top;
 
+  console.clear()
+  console.log(`mouseX: ${mouseX} mouseY: ${mouseY} // X: ${e.clientX} Y: ${e.clientY} // left: ${imageCanvas.getBoundingClientRect().left} top: ${imageCanvas.getBoundingClientRect().top}`)
+  console.log(`rect.x: ${rect.x} rect.y: ${rect.y} rect.width: ${rect.width} rect.height: ${rect.height}`)
+
+  //console.log(`mouseX: ${mouseX} mouseY: ${mouseY} rect.width: ${rect.width} rect.height: ${rect.height}`)
+  //console.log(`con1: [${mouseX > rect.x + rect.width - 10}] con2: [${mouseX < rect.x + rect.width}] con3: [${mouseY > rect.y + rect.height - 10}] con4: [${mouseY < rect.y + rect.height}]`)
   if (
-    mouseX > rect.x + rect.width - 10 &&
-    mouseX < rect.x + rect.width &&
-    mouseY > rect.y + rect.height - 10 &&
-    mouseY < rect.y + rect.height
+    mouseX > rect.x + rect.width - handleSize / 2 &&
+    mouseX < rect.x + rect.width + handleSize / 2 &&
+    mouseY > rect.y + rect.height - handleSize / 2 &&
+    mouseY < rect.y + rect.height + handleSize / 2
   ) {
     rect.isResizing = true;
   } else if (
@@ -64,11 +201,25 @@ function handleMouseDown(e) {
   ) {
     rect.isMoving = true;
   }
+  
 }
 
 function handleMouseMove(e) {
   const mouseX = e.clientX - imageCanvas.getBoundingClientRect().left;
   const mouseY = e.clientY - imageCanvas.getBoundingClientRect().top;
+
+  if (
+    mouseX > rect.x + rect.width - handleSize / 2 &&
+    mouseX < rect.x + rect.width + handleSize / 2 &&
+    mouseY > rect.y + rect.height - handleSize / 2 &&
+    mouseY < rect.y + rect.height + handleSize / 2
+  ) {
+    document.getElementById("imageCanvas").style.cursor = 'pointer';
+    
+
+  } else {
+    document.getElementById("imageCanvas").style.cursor = 'default';
+  }
 
   if (rect.isResizing) {
     handleResizing(mouseX, mouseY);
@@ -96,10 +247,8 @@ function handleResizing(mouseX, mouseY) {
   const newWidth = mouseX - rect.x;
   const newHeight = newWidth * (4 / 6);
 
-  if (newWidth <= imageCanvas.width - rect.x && newHeight <= imageCanvas.height - rect.y - offsetY * 2) {
-    rect.width = newWidth;
-    rect.height = newHeight;
-  }
+  rect.width = newWidth;
+  rect.height = newHeight;
 
   applyMagnetEffect();
   drawImageAndRectangle();
@@ -133,6 +282,7 @@ function applyMagnetEffect() {
 }
 
 function drawImageAndRectangle() {
+  
   const imageAspectRatio = img.width / img.height;
   const imageWidth = imageCanvas.width;
   const imageHeight = imageWidth / imageAspectRatio;
@@ -141,7 +291,7 @@ function drawImageAndRectangle() {
   ctx.fillStyle = "#FFFFFF";
   ctx.fillRect(0, 0, imageCanvas.width, imageCanvas.height);
   if (img) {
-    ctx.drawImage(img, 0, offsetY, imageWidth, imageHeight);
+    ctx.drawImage(img, 0, offsetY, imageCanvas.width, imageCanvas.height - offsetY * 2);
 
     // Darken the image outside the rectangle
     ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
@@ -157,7 +307,7 @@ function drawImageAndRectangle() {
     ctx.clip();
 
     // Draw the original image within the rectangle
-    ctx.drawImage(img, 0, offsetY, imageWidth, imageHeight);
+    ctx.drawImage(img, 0, offsetY, imageCanvas.width, imageCanvas.height - offsetY * 2);
 
     // Restore the context to draw the rectangle and resize handle
     ctx.restore();
@@ -219,7 +369,6 @@ function drawHighResImage() {
   highResCtx.restore();
 }
 
-
 function drawPreview() {
   // Clear the preview canvas
   previewCtx.fillStyle = "#FFFFFF";
@@ -250,4 +399,6 @@ function drawPreview() {
   // Restore the context
   previewCtx.restore();
 }
+
+
 
