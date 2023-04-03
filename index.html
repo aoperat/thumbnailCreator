@@ -9,6 +9,8 @@
 <body>
     <div class="container">
         <h1>thumbnail Generator</h1>
+
+    
         <input type="file" id="fileInput" accept="image/*">
         <div class="canvas-container">
             <div>
@@ -18,10 +20,52 @@
             <div>
               <h2>Preview</h2>
               <canvas id="previewCanvas" width="600" height="600"></canvas>
+              <canvas id="highResCanvas" width="800" height="800" style="display:none;"></canvas>
             </div>
           </div>
 
-        <button id="downloadBtn">Download Image</button>
+          <div class="button-container">
+            <button id="guideBtn">Open Guide</button>
+                <!-- Guide Modal -->
+                <div id="guideModal" class="modal">
+                    <div class="modal-content">
+                        <span class="close">&times;</span>
+                        <h1>Image Cropper Guide</h1>
+                        <h2>Overview</h2>
+                        <p>
+                          This image cropper tool allows you to select a specific area from an image and download the cropped version. The cropped image maintains a 4:6 aspect ratio.
+                        </p>
+                        <h2>How to Use</h2>
+                        <ol>
+                          <li>
+                            <strong>Upload an image:</strong> Click the "Choose File" button to upload an image from your device. Once uploaded, the image will be displayed on the canvas.
+                          </li>
+                          <li>
+                            <strong>Select an area:</strong> Click and drag the red rectangle to move it over the desired area. Resize the rectangle by clicking and dragging its bottom-right corner. The selected area will maintain a 4:6 aspect ratio.
+                          </li>
+                          <li>
+                            <strong>Preview the cropped image:</strong> The preview canvas shows the cropped image in real-time, centered and resized to fit within the preview area.
+                          </li>
+                          <li>
+                            <strong>Download the cropped image:</strong> Click the "Download" button to download the cropped image. The downloaded image will have a higher resolution than the preview.
+                          </li>
+                        </ol>
+                        <h2>Additional Features</h2>
+                        <ul>
+                          <li>
+                            <strong>Zoom in/out:</strong> Use the mouse wheel or pinch gesture on mobile devices to zoom in and out within the red rectangle.
+                          </li>
+                          <li>
+                            <strong>Magnet effect:</strong> The red rectangle will snap to the edges of the canvas when it's close enough, making it easier to align with the image boundaries.
+                          </li>
+                        </ul>
+                      
+                    </div>
+                </div>
+
+            <button id="downloadBtn">Download Image</button>
+        </div>
+
 
         <footer>
             <p>Created by <a href="https://github.com/aoperat" target="_blank">aoperat</a></p>
